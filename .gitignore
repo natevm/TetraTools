@@ -1,0 +1,8 @@
+build
+install
+*.code-workspace
+PlutoEngine.code-workspace
+*_wrap.cxx
+__pycache__
+*.swp
+.DS_Store
