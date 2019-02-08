@@ -341,6 +341,10 @@ void write_node_ele_as_binary(std::string node_path, std::string ele_path, uint3
     if (!file.is_open()) 
         throw std::runtime_error( std::string("Unable to create " + binary_path));
         
+    /* Write out the points per primitive */
+    uint32_t points_per_primitive = 4;
+    file.write((char*) &points_per_primitive, sizeof(uint32_t));
+
     /* Write out the number of points */
     file.write((char*) &node.num_points, sizeof(uint32_t));
 
@@ -348,18 +352,16 @@ void write_node_ele_as_binary(std::string node_path, std::string ele_path, uint3
     uint32_t num_indices = ele.num_tetrahedra * 4;
     file.write((char*) &num_indices, sizeof(uint32_t));
 
-    std::vector<float> vertices(4 * node.num_points);
-    
-    /* Interlace points and attributes */
+    /* Write out the point data */
+    file.write((char*) node.points.data(), node.num_points * 3 * sizeof(float));
+
+    /* Write out the scalar data */
+    std::vector<float> scalars(node.num_points);
     for (uint32_t i = 0; i < node.num_points; ++i) {
-        vertices[i * 4 + 0] = node.points[i * 3 + 0];
-        vertices[i * 4 + 1] = node.points[i * 3 + 1];
-        vertices[i * 4 + 2] = node.points[i * 3 + 2];
-        vertices[i * 4 + 3] = (node.num_attributes > 0) ? node.attributes[i * node.num_attributes] : 0.0f;
+        scalars[i] = (node.num_attributes > 0) ? node.attributes[i * node.num_attributes + attribute_idx] : 0.0f;
     }
-
-    file.write((char*) vertices.data(), vertices.size() * sizeof(float));
-
+    file.write((char*) scalars.data(), node.num_points * sizeof(float));
+    
     /* Write indices */
     file.write((char*) ele.nodes.data(), ele.num_tetrahedra * 4 * sizeof(uint32_t));
     file.close();
