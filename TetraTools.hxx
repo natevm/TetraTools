@@ -365,8 +365,38 @@ void write_node_ele_as_binary(std::string node_path, std::string ele_path, uint3
     file.close();
 }
 
+/* Writes raw point/index data to a binary file */
+void write_to_binary(std::vector<float> &points, std::vector<float> &scalars, std::vector<uint32_t> &indices, uint32_t points_per_primitive, std::string binary_path)
+{
+    /* Create/open the file */
+    std::fstream file;
+    file.open(binary_path, std::ios::out | std::ios::trunc | std::ios::binary );
+
+    /* Write out the points per primitive */
+    file.write((char*) &points_per_primitive, sizeof(uint32_t));
+
+    /* Write out the number of points */
+    uint32_t num_points = points.size() / 3;
+    file.write((char*) &num_points, sizeof(uint32_t));
+
+    /* Write out the number of indices */
+    uint32_t num_indices = indices.size();
+    file.write((char*) &num_indices, sizeof(uint32_t));
+
+    /* Write out point data */
+    file.write((char*) points.data(), points.size() * 3 * sizeof(float));
+
+    /* Write out scalar data */
+    file.write((char*) scalars.data(), scalars.size() * sizeof(float));
+
+    /* Write indices */
+    file.write((char*) indices.data(), indices.size() * sizeof(uint32_t));
+    file.close();
+}
+
+
 /* Reads points and indices from a binary format */
-void read_binary(std::string binary_path, std::vector<float> &points, std::vector<uint32_t> &indices)
+void read_binary(std::string binary_path, uint32_t &points_per_primitive, std::vector<float> &points, std::vector<float> &scalars, std::vector<uint32_t> &indices)
 {
     throw_if_file_does_not_exist(binary_path);
 
@@ -376,14 +406,19 @@ void read_binary(std::string binary_path, std::vector<float> &points, std::vecto
     if (!file.is_open()) 
         throw std::runtime_error( std::string("Unable to open " + binary_path));
 
+    file.read((char*)(&points_per_primitive), sizeof(uint32_t));
+    
     uint32_t num_points;
     file.read((char*)(&num_points), sizeof(uint32_t));
 
     uint32_t num_indices;
     file.read((char*)(&num_indices), sizeof(uint32_t));
 
-    points.resize(num_points * 4);
-    file.read((char*)points.data(), num_points * 4 * sizeof(float));
+    points.resize(num_points * 3);
+    file.read((char*)points.data(), num_points * 3 * sizeof(float));
+
+    scalars.resize(num_points);
+    file.read((char*)scalars.data(), num_points * sizeof(float));
 
     indices.resize(num_indices);
     file.read((char*)(indices.data()), num_indices * sizeof(uint32_t));
