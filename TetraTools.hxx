@@ -386,7 +386,7 @@ void write_to_binary(std::vector<float> &points, std::vector<float> &scalars, st
     file.write((char*) &num_indices, sizeof(uint32_t));
 
     /* Write out point data */
-    file.write((char*) points.data(), points.size() * 3 * sizeof(float));
+    file.write((char*) points.data(), points.size() * sizeof(float));
 
     /* Write out scalar data */
     file.write((char*) scalars.data(), scalars.size() * sizeof(float));
