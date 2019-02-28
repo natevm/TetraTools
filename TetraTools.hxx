@@ -368,7 +368,7 @@ void write_node_ele_as_binary(std::string node_path, std::string ele_path, uint3
 }
 
 /* Writes raw point/index data to a binary file */
-void write_to_binary(std::vector<float> &points, std::vector<float> &scalars, std::vector<uint32_t> &indices, uint32_t points_per_primitive, std::string binary_path)
+void write_to_binary(std::vector<float> &points, std::vector<float> &scalars, std::vector<uint32_t> &indices, uint32_t points_per_primitive, bool data_is_per_cell, std::string binary_path)
 {
     /* Create/open the file */
     std::fstream file;
@@ -385,6 +385,9 @@ void write_to_binary(std::vector<float> &points, std::vector<float> &scalars, st
     uint32_t num_indices = indices.size();
     file.write((char*) &num_indices, sizeof(uint32_t));
 
+    /* Write out whether or not data is per cell or per vertex */
+    file.write((char*) &data_is_per_cell, sizeof(uint8_t));
+
     /* Write out point data */
     file.write((char*) points.data(), points.size() * sizeof(float));
 
@@ -398,10 +401,11 @@ void write_to_binary(std::vector<float> &points, std::vector<float> &scalars, st
 
 
 /* Reads points and indices from a binary format */
-void read_binary(std::string binary_path, uint32_t &points_per_primitive, std::vector<float> &points, std::vector<float> &scalars, std::vector<uint32_t> &indices)
+uint32_t read_binary(std::string binary_path, std::vector<float> &points, std::vector<float> &scalars, std::vector<uint32_t> &indices, bool &data_is_per_cell)
 {
     throw_if_file_does_not_exist(binary_path);
 
+    uint32_t points_per_primitive;
     std::fstream file;
     file.open(binary_path, std::ios::in | std::ios::binary );
 
@@ -416,14 +420,19 @@ void read_binary(std::string binary_path, uint32_t &points_per_primitive, std::v
     uint32_t num_indices;
     file.read((char*)(&num_indices), sizeof(uint32_t));
 
+    file.read((char*)(&data_is_per_cell), sizeof(uint8_t));
+
     points.resize(num_points * 3);
     file.read((char*)points.data(), num_points * 3 * sizeof(float));
 
-    scalars.resize(num_points);
-    file.read((char*)scalars.data(), num_points * sizeof(float));
+    uint32_t num_scalars = (data_is_per_cell) ? num_indices / points_per_primitive : num_points;
+    scalars.resize(num_scalars);
+    file.read((char*)scalars.data(), num_scalars * sizeof(float));
 
     indices.resize(num_indices);
     file.read((char*)(indices.data()), num_indices * sizeof(uint32_t));
 
     file.close();
+
+    return points_per_primitive;
 }

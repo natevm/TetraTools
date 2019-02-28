@@ -17,4 +17,6 @@ namespace std {
 #include "./TetraTools.hxx"
 %}
 
+%apply bool& INOUT { bool& };
+
 %include "./TetraTools.hxx"
